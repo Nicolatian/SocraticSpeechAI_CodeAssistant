@@ -1,0 +1,3 @@
+﻿conversation_id,user_id,question,answer,created_at,exercise_id
+14,5,what up diddy,"Hvad er det, du vil have hjælp til?",2026-11-13 13:25:05,array-indexing
+18,6,tester et data indsamlings punkt,Hvad er det tredje tal i listen?,2026-11-13 13:33:32,array-indexing

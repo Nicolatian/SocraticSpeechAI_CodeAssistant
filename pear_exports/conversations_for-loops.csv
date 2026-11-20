@@ -1,0 +1,21 @@
+﻿conversation_id,user_id,question,answer,created_at,exercise_id
+12,2,Hvorfor regner det i dag?,Hvorfor regner det i dag?,2026-11-13 12:55:37,for-loops
+13,2,Hvordan kan jeg smide mit data ind i EMG uden at ødelægge mig selv,"Det er vigtigt at huske, at det er vigtigt at være forsigtig, når man arbejder med elektriske målinger. Sørg for at have de rigtige sikkerhedsforanstaltninger på plads, såsom at bruge beskyttelsesbriller, handsker og en sikkerhedssnor.
+
+Her er et eksempel på, hvordan du kan indtaste data i en Python-editor:
+
+1. Åbn din Python-editor (f.eks. VS Code, PyCharm eller Thonny).
+2. Opret en ny fil med navnet ""emg_sum.py"".
+3. Indsæt følgende kode i filen:
+```python
+# Indtast data for de fem EMG-målinger
+emg_measurements = input(""Indtast de fem EMG-målinger (i mV): "")
+emg_measurements = [float(x) for x in emg_measurements.split()]
+
+# Beregn summen af alle målinger
+total = 0
+for i in range(len(emg_measurements)):
+  total = total + emg_measurements[i]
+
+# Udskriv resultatet",2026-11-13 12:57:16,for-loops
+15,5,tester,Hvad er formålet med denne kode?,2026-11-13 13:26:06,for-loops
