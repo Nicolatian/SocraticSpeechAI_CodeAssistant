@@ -71,10 +71,20 @@
 }
 
 .python-console-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 0.6rem 0.85rem;
   border-top: 1px solid #444;
   color: #c8c8c8;
   font-size: 0.85rem;
+}
+
+.python-console-tracking-error {
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  color: #ff8a8a;
+  font-size: 0.8rem;
 }
 
 @media (max-width: 900px) {

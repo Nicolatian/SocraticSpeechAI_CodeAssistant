@@ -3,7 +3,15 @@ import os
 import re
 import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from database import init_db, log_conversation, log_event, log_login
+from urllib.parse import parse_qs, urlsplit
+from database import (
+    get_run_count,
+    init_db,
+    log_conversation,
+    log_event,
+    log_login,
+    run_code,
+)
 
 from prompt import ask, ask_stream
 
@@ -36,7 +44,12 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        if self.path in {"/", "/api/health"}:
+        parsed_path = urlsplit(self.path)
+        if parsed_path.path == "/api/run-count":
+            self._handle_run_count(parsed_path.query)
+            return
+
+        if parsed_path.path in {"/", "/api/health"}:
             self._send_json(200, {
                 "service": "Prompt API",
                 "status": "ok",
@@ -46,7 +59,7 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
 
         self._send_json(404, {"error": "Not found."})
 
-    def _read_log_payload(self):
+    def _read_log_payload(self, max_size=MAX_LOG_REQUEST_SIZE):
         """Read and validate a small JSON logging request."""
         try:
             content_length = int(
@@ -56,7 +69,7 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": "Invalid request."})
             return None
 
-        if content_length <= 0 or content_length > MAX_LOG_REQUEST_SIZE:
+        if content_length <= 0 or content_length > max_size:
             self._send_json(400, {"error": "Invalid request size."})
             return None
 
@@ -71,6 +84,67 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
             return None
 
         return payload
+
+    def _handle_run_count(self, query):
+        user_ids = parse_qs(query).get("userId", [])
+        if (
+            len(user_ids) != 1
+            or not user_ids[0].strip()
+            or len(user_ids[0]) > 80
+        ):
+            self._send_json(400, {"error": "Invalid User ID."})
+            return
+
+        try:
+            run_count = get_run_count(user_ids[0].strip())
+        except sqlite3.Error:
+            self.log_error("Could not retrieve participant run count.")
+            self._send_json(500, {"error": "Could not retrieve run count."})
+            return
+
+        if run_count is None:
+            self._send_json(404, {"error": "User not found."})
+            return
+
+        self._send_json(200, {"runCount": run_count})
+
+    def _handle_run_code(self):
+        payload = self._read_log_payload(MAX_REQUEST_SIZE)
+        if payload is None:
+            return
+
+        user_id = payload.get("userId")
+        code = payload.get("code")
+        exercise_id = payload.get("exerciseId")
+        if (
+            not isinstance(user_id, str)
+            or not user_id.strip()
+            or len(user_id) > 80
+            or not isinstance(code, str)
+            or len(code) > MAX_CODE_CHARACTERS
+        ):
+            self._send_json(400, {"error": "Invalid code run information."})
+            return
+        if exercise_id is not None and (
+            not isinstance(exercise_id, str)
+            or len(exercise_id) > MAX_EXERCISE_ID_CHARACTERS
+            or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", exercise_id)
+        ):
+            self._send_json(400, {"error": "Invalid exercise ID."})
+            return
+
+        try:
+            run_number = run_code(user_id.strip(), code, exercise_id)
+        except (sqlite3.Error, TypeError, ValueError):
+            self.log_error("Could not save participant code run.")
+            self._send_json(500, {"error": "Could not save code run."})
+            return
+
+        if run_number is None:
+            self._send_json(404, {"error": "User not found."})
+            return
+
+        self._send_json(200, {"success": True, "runNumber": run_number})
 
     def _handle_log_login(self):
         payload = self._read_log_payload()
@@ -138,6 +212,10 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/log-login":
             self._handle_log_login()
+            return
+
+        if self.path == "/api/run-code":
+            self._handle_run_code()
             return
 
         if self.path == "/api/log-event":

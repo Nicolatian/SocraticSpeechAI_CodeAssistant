@@ -133,8 +133,47 @@ const [consoleOutput, setConsoleOutput] = useState('Press Run code to see the ou
 const [codeWorks, setCodeWorks] = useState(false)
 const [hasRunCode, setHasRunCode] = useState(false)
 const [isRunningCode, setIsRunningCode] = useState(false)
+const [runCount, setRunCount] = useState(null)
+const [runTrackingError, setRunTrackingError] = useState('')
 const pythonWorkerRef = useRef(null)
 const runIdRef = useRef(0)
+
+useEffect(() => {
+  if (!userId) return
+
+  let cancelled = false
+  async function loadRunCount() {
+    try {
+      const response = await fetch(
+        `/api/run-count?userId=${encodeURIComponent(userId)}`,
+      )
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result.error || `Request failed (${response.status}).`)
+      }
+      if (!Number.isInteger(result.runCount) || result.runCount < 0) {
+        throw new Error('The server returned an invalid run count.')
+      }
+      if (!cancelled) {
+        setRunCount((current) =>
+          current === null ? result.runCount : Math.max(current, result.runCount),
+        )
+        setRunTrackingError('')
+      }
+    } catch (error) {
+      if (!cancelled) {
+        setRunTrackingError(
+          error instanceof Error ? error.message : 'Could not load run count.',
+        )
+      }
+    }
+  }
+
+  loadRunCount()
+  return () => {
+    cancelled = true
+  }
+}, [userId])
 
 useEffect(() => {
   try {
@@ -427,6 +466,36 @@ onHighlightStarted: (_element, _step, { state }) => {
       return
     }
 
+    if (userId) {
+      fetch('/api/run-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          code,
+          exerciseId: selectedCategory || null,
+        }),
+      })
+        .then(async (response) => {
+          const result = await response.json()
+          if (!response.ok) {
+            throw new Error(result.error || `Request failed (${response.status}).`)
+          }
+          if (!Number.isInteger(result.runNumber) || result.runNumber < 1) {
+            throw new Error('The server returned an invalid run number.')
+          }
+          setRunCount((current) =>
+            current === null ? result.runNumber : Math.max(current, result.runNumber),
+          )
+          setRunTrackingError('')
+        })
+        .catch((error) => {
+          setRunTrackingError(
+            error instanceof Error ? error.message : 'Could not save code run.',
+          )
+        })
+    }
+
     // Send Python code to the worker
     pythonWorkerRef.current.postMessage({
       id: runId,
@@ -570,14 +639,26 @@ onHighlightStarted: (_element, _step, { state }) => {
           </pre>
 
           <div className="python-console-status" role="status">
-            {isRunningCode
-              ? 'Executing Python...'
-              : hasRunCode
-                ? codeWorks
-                  ? 'Code works'
-                  : 'Code has an error'
-                : 'Not run yet'}
+            <span>
+              {isRunningCode
+                ? 'Executing Python...'
+                : hasRunCode
+                  ? codeWorks
+                    ? 'Code works'
+                    : 'Code has an error'
+                  : 'Not run yet'}
+            </span>
+            {userId && (
+              <span>
+                {runCount === null ? 'Loading run count…' : `Your run #${runCount}`}
+              </span>
+            )}
           </div>
+          {runTrackingError && (
+            <p className="python-console-tracking-error" role="alert">
+              Run count could not be updated: {runTrackingError}
+            </p>
+          )}
         </section>
       </div>
 

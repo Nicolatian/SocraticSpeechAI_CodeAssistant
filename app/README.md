@@ -94,6 +94,8 @@ from the workspace root to refresh `pear_exports/conversations.csv` and create
 one `conversations_<exercise-id>.csv` file for each exercise represented in the
 logs. Conversations saved before exercise tracking was added have a blank
 exercise ID and are included only in the combined export.
+Code runs are counted per user in the database; the Output panel shows the
+user's current run number and it continues across page reloads.
 
 Currently, two official plugins are available:
 

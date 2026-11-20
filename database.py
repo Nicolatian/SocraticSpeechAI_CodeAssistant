@@ -15,9 +15,17 @@ def init_db():
             CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT PRIMARY KEY,
                 first_login DATETIME DEFAULT CURRENT_TIMESTAMP,
-                last_login DATETIME DEFAULT CURRENT_TIMESTAMP
+                last_login DATETIME DEFAULT CURRENT_TIMESTAMP,
+                run_count INTEGER NOT NULL DEFAULT 0
             )
         """)
+        user_columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(users)")
+        }
+        if "run_count" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN run_count INTEGER NOT NULL DEFAULT 0"
+            )
         connection.execute("""
             CREATE TABLE IF NOT EXISTS events (
                 event_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,6 +70,42 @@ def log_login(user_id):
             VALUES (?, ?, ?)
         """, (user_id, "login", json.dumps({})))
 
+def run_code(user_id, code, exercise_id=None):
+    """Save a code submission and return its sequential number for this user."""
+    with closing(sqlite3.connect(DB_PATH)) as connection, connection:
+        connection.execute("PRAGMA foreign_keys = ON")
+        updated_user = connection.execute("""
+            UPDATE users
+            SET run_count = run_count + 1
+            WHERE user_id = ?
+        """, (user_id,))
+        if updated_user.rowcount == 0:
+            return None
+        run_number = connection.execute(
+            "SELECT run_count FROM users WHERE user_id = ?", (user_id,)
+        ).fetchone()[0]
+        connection.execute("""
+            INSERT INTO events (user_id, event_type, details)
+            VALUES (?, ?, ?)
+        """, (
+            user_id,
+            "run_code",
+            json.dumps({
+                "code": code,
+                "exercise_id": exercise_id,
+                "run_number": run_number,
+            }),
+        ))
+        return run_number
+
+
+def get_run_count(user_id):
+    """Return a user's total code-run count, or None if the user does not exist."""
+    with sqlite3.connect(DB_PATH) as connection:
+        row = connection.execute(
+            "SELECT run_count FROM users WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        return row[0] if row is not None else None
 
 def log_event(user_id, event_type, details=None):
     with closing(sqlite3.connect(DB_PATH)) as connection, connection:
