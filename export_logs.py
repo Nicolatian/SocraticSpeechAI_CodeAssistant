@@ -42,6 +42,21 @@ if "exercise_id" not in conversation_columns:
     for conversation in data["conversations"]:
         conversation["exercise_id"] = None
 
+# Add code-run outcome and timing fields to the event exports.
+for event in data["events"]:
+    details = json.loads(event["details"] or "{}")
+    is_code_run = event["event_type"] == "run_code"
+    event.update({
+        "run_number": details.get("run_number") if is_code_run else None,
+        "exercise_id": details.get("exercise_id") if is_code_run else None,
+        "started_at": (
+            details.get("started_at", event["created_at"]) if is_code_run else None
+        ),
+        "completed": details.get("completed") if is_code_run else None,
+        "completed_at": details.get("completed_at") if is_code_run else None,
+        "duration_seconds": details.get("duration_seconds") if is_code_run else None,
+    })
+
 # Count questions for each participant
 question_counts = {
     row["user_id"]: row["question_count"]

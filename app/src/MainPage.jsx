@@ -137,6 +137,7 @@ const [runCount, setRunCount] = useState(null)
 const [runTrackingError, setRunTrackingError] = useState('')
 const pythonWorkerRef = useRef(null)
 const runIdRef = useRef(0)
+const runStartsRef = useRef(new Map())
 
 useEffect(() => {
   if (!userId) return
@@ -263,6 +264,42 @@ onHighlightStarted: (_element, _step, { state }) => {
 
   // Start the Python worker once. Python runs away from the React UI thread.
   useEffect(() => {
+    function recordCodeRunCompletion(runId, codeWorks) {
+      const run = runStartsRef.current.get(runId)
+      if (!userId || !run) return
+
+      runStartsRef.current.delete(runId)
+      fetch('/api/run-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          code: run.code,
+          exerciseId: run.exerciseId,
+          codeWorks,
+          durationSeconds: (performance.now() - run.startedAt) / 1000,
+        }),
+      })
+        .then(async (response) => {
+          const result = await response.json()
+          if (!response.ok) {
+            throw new Error(result.error || `Request failed (${response.status}).`)
+          }
+          if (!Number.isInteger(result.runNumber) || result.runNumber < 1) {
+            throw new Error('The server returned an invalid run number.')
+          }
+          setRunCount((current) =>
+            current === null ? result.runNumber : Math.max(current, result.runNumber),
+          )
+          setRunTrackingError('')
+        })
+        .catch((error) => {
+          setRunTrackingError(
+            error instanceof Error ? error.message : 'Could not save code run.',
+          )
+        })
+    }
+
     const worker = new Worker(`${import.meta.env.BASE_URL}python.worker.js`, {
       type: 'module',
     })
@@ -271,6 +308,8 @@ onHighlightStarted: (_element, _step, { state }) => {
 
     worker.onmessage = (event) => {
       const result = event.data
+
+      recordCodeRunCompletion(result.id, result.codeWorks === true)
 
       // Ignore older code runs
       if (result.id !== runIdRef.current) {
@@ -284,6 +323,7 @@ onHighlightStarted: (_element, _step, { state }) => {
     }
 
     worker.onerror = (event) => {
+      recordCodeRunCompletion(runIdRef.current, false)
       setConsoleOutput(`Error in Python worker: ${event.message}`)
       setCodeWorks(false)
       setHasRunCode(true)
@@ -294,7 +334,7 @@ onHighlightStarted: (_element, _step, { state }) => {
       worker.terminate()
       pythonWorkerRef.current = null
     }
-  }, [])
+  }, [userId])
 
   //Handle button click for category selection
   function handleCategorySelect(event) {
@@ -439,7 +479,7 @@ onHighlightStarted: (_element, _step, { state }) => {
     setHasRunCode(false)
   }
 
-  async function handleRunCode() {
+  function handleRunCode() {
     if (!code.trim()) {
       setConsoleOutput('Du har ikke skrevet nogen kode. Skriv noget kode og prøv igen.')
       setCodeWorks(false)
@@ -461,39 +501,12 @@ onHighlightStarted: (_element, _step, { state }) => {
     setCodeWorks(false)
     setHasRunCode(false)
 
-        // Check that this is still the latest run
-    if (runId !== runIdRef.current || !pythonWorkerRef.current) {
-      return
-    }
-
     if (userId) {
-      fetch('/api/run-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          code,
-          exerciseId: selectedCategory || null,
-        }),
+      runStartsRef.current.set(runId, {
+        startedAt: performance.now(),
+        code,
+        exerciseId: selectedCategory || null,
       })
-        .then(async (response) => {
-          const result = await response.json()
-          if (!response.ok) {
-            throw new Error(result.error || `Request failed (${response.status}).`)
-          }
-          if (!Number.isInteger(result.runNumber) || result.runNumber < 1) {
-            throw new Error('The server returned an invalid run number.')
-          }
-          setRunCount((current) =>
-            current === null ? result.runNumber : Math.max(current, result.runNumber),
-          )
-          setRunTrackingError('')
-        })
-        .catch((error) => {
-          setRunTrackingError(
-            error instanceof Error ? error.message : 'Could not save code run.',
-          )
-        })
     }
 
     // Send Python code to the worker

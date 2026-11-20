@@ -1,7 +1,9 @@
 
 import sqlite3
 import json
+import math
 from contextlib import closing
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # Database is created next to this Python file
@@ -70,8 +72,18 @@ def log_login(user_id):
             VALUES (?, ?, ?)
         """, (user_id, "login", json.dumps({})))
 
-def run_code(user_id, code, exercise_id=None):
-    """Save a code submission and return its sequential number for this user."""
+
+def run_code(user_id, code, exercise_id, code_works, duration_seconds):
+    """Save a completed code run and return its sequential number."""
+    if (
+        not isinstance(code_works, bool)
+        or isinstance(duration_seconds, bool)
+        or not isinstance(duration_seconds, (int, float))
+        or not math.isfinite(duration_seconds)
+        or duration_seconds < 0
+    ):
+        raise ValueError("Invalid code run completion information.")
+
     with closing(sqlite3.connect(DB_PATH)) as connection, connection:
         connection.execute("PRAGMA foreign_keys = ON")
         updated_user = connection.execute("""
@@ -84,6 +96,8 @@ def run_code(user_id, code, exercise_id=None):
         run_number = connection.execute(
             "SELECT run_count FROM users WHERE user_id = ?", (user_id,)
         ).fetchone()[0]
+        completed_at = datetime.now(timezone.utc)
+        started_at = completed_at - timedelta(seconds=duration_seconds)
         connection.execute("""
             INSERT INTO events (user_id, event_type, details)
             VALUES (?, ?, ?)
@@ -94,6 +108,14 @@ def run_code(user_id, code, exercise_id=None):
                 "code": code,
                 "exercise_id": exercise_id,
                 "run_number": run_number,
+                "completed": code_works,
+                "started_at": started_at.isoformat(timespec="milliseconds").replace(
+                    "+00:00", "Z"
+                ),
+                "completed_at": completed_at.isoformat(timespec="milliseconds").replace(
+                    "+00:00", "Z"
+                ),
+                "duration_seconds": round(duration_seconds, 3),
             }),
         ))
         return run_number

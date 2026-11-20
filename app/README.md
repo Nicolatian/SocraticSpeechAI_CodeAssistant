@@ -95,7 +95,9 @@ one `conversations_<exercise-id>.csv` file for each exercise represented in the
 logs. Conversations saved before exercise tracking was added have a blank
 exercise ID and are included only in the combined export.
 Code runs are counted per user in the database; the Output panel shows the
-user's current run number and it continues across page reloads.
+user's current run number and it continues across page reloads. Each run also
+records whether it completed successfully and its start, finish, and elapsed
+time in the event exports.
 
 Currently, two official plugins are available:
 

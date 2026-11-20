@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 import sqlite3
@@ -116,14 +117,21 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
         user_id = payload.get("userId")
         code = payload.get("code")
         exercise_id = payload.get("exerciseId")
+        code_works = payload.get("codeWorks")
+        duration_seconds = payload.get("durationSeconds")
         if (
             not isinstance(user_id, str)
             or not user_id.strip()
             or len(user_id) > 80
             or not isinstance(code, str)
             or len(code) > MAX_CODE_CHARACTERS
+            or not isinstance(code_works, bool)
+            or isinstance(duration_seconds, bool)
+            or not isinstance(duration_seconds, (int, float))
+            or not math.isfinite(duration_seconds)
+            or duration_seconds < 0
         ):
-            self._send_json(400, {"error": "Invalid code run information."})
+            self._send_json(400, {"error": "Invalid code run completion information."})
             return
         if exercise_id is not None and (
             not isinstance(exercise_id, str)
@@ -134,7 +142,9 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
             return
 
         try:
-            run_number = run_code(user_id.strip(), code, exercise_id)
+            run_number = run_code(
+                user_id.strip(), code, exercise_id, code_works, duration_seconds
+            )
         except (sqlite3.Error, TypeError, ValueError):
             self.log_error("Could not save participant code run.")
             self._send_json(500, {"error": "Could not save code run."})
