@@ -5,9 +5,8 @@ from urllib.request import Request, urlopen
 
 API_URL = "http://localhost:8000/v1/chat/completions"
 MODEL_NAME = "mistralai/Ministral-3-3B-Reasoning-2512"
-MAX_TOKENS = 256
-ANSWER_WRAPPER_PATTERN = re.compile(r"</?\s*answer\s*>", re.IGNORECASE)
-ANSWER_WRAPPER_TAGS = ("<answer>", "</answer>")
+MAX_TOKENS = 512
+
 
 SYSTEM_PROMPT = (
 	"Du er Pear Programmer, en tålmodig Python-underviser, der guider eleven "
@@ -38,38 +37,6 @@ SYSTEM_PROMPT = (
 	"eller markup om selve svaret.\n"
 	"- Nævn aldrig code eller previous_code variablerne i dit svar"
 )
-
-
-def strip_answer_wrappers(text):
-	return ANSWER_WRAPPER_PATTERN.sub("", text).strip()
-
-
-def strip_answer_wrappers_from_stream(tokens):
-	pending = ""
-	tags = tuple(tag.casefold() for tag in ANSWER_WRAPPER_TAGS)
-
-	for token in tokens:
-		pending += token
-		output = []
-		while pending:
-			lower_pending = pending.casefold()
-			matched_tag = next(
-				(tag for tag in tags if lower_pending.startswith(tag)),
-				None,
-			)
-			if matched_tag:
-				pending = pending[len(matched_tag):]
-			elif any(tag.startswith(lower_pending) for tag in tags):
-				# Might be the start of a tag: wait for more tokens.
-				break
-			else:
-				output.append(pending[0])
-				pending = pending[1:]
-		if output:
-			yield "".join(output)
-
-	# Whatever is left in `pending` here is only a partial tag
-	# (e.g. a truncated "<ans"), so it is intentionally dropped.
 
 
 def format_teacher_notes(teacher_notes):

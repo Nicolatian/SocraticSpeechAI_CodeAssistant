@@ -1,5 +1,4 @@
-venv-mimir/
-venv-tts/
 __pycache__/
 *.py[cod]
 node_modules/
+app/README.md

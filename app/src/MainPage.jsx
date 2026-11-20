@@ -123,17 +123,10 @@ const tutorialSprites = {
   const [editorScrollTop, setEditorScrollTop] = useState(0)
   const [question, setQuestion] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [isSpeaking, setIsSpeaking] = useState(false)
   const [streamingAnswer, setStreamingAnswer] = useState('')
-  const [speechAudioUrls, setSpeechAudioUrls] = useState([])
-  const [speechPlaybackIndex, setSpeechPlaybackIndex] = useState(null)
-  const [speechMessageIndex, setSpeechMessageIndex] = useState(null)
-  const [speechError, setSpeechError] = useState('')
   const [requestError, setRequestError] = useState('')
   const [sentCodeCharacters, setSentCodeCharacters] = useState(null)
   const [history, setHistory] = useState([])
-  const speechAudioUrlsRef = useRef([])
-  const speechAudioRef = useRef(null)
 
 // Python code editor state
 const [consoleOutput, setConsoleOutput] = useState('Press Run code to see the output here.')
@@ -142,12 +135,6 @@ const [hasRunCode, setHasRunCode] = useState(false)
 const [isRunningCode, setIsRunningCode] = useState(false)
 const pythonWorkerRef = useRef(null)
 const runIdRef = useRef(0)
-
-useEffect(() => {
-  return () => {
-    speechAudioUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
-  }
-}, [])
 
 useEffect(() => {
   try {
@@ -160,19 +147,6 @@ useEffect(() => {
     console.error('Could not remove previously saved chat history.', error)
   }
 }, [])
-
-useEffect(() => {
-  if (speechPlaybackIndex === null) {
-    return
-  }
-
-  const playback = speechAudioRef.current?.play()
-  playback?.catch((error) => {
-    setSpeechError(
-      error instanceof Error ? error.message : 'Could not play the generated speech.',
-    )
-  })
-}, [speechPlaybackIndex])
 
  useEffect(() => {
     if (!showTutorial) return
@@ -298,12 +272,6 @@ onHighlightStarted: (_element, _step, { state }) => {
     setQuestion('')
     setRequestError('')
     setStreamingAnswer('')
-    speechAudioUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
-    speechAudioUrlsRef.current = []
-    setSpeechAudioUrls([])
-    setSpeechPlaybackIndex(null)
-    setSpeechMessageIndex(null)
-    setSpeechError('')
     runIdRef.current += 1
     setConsoleOutput('Press Run code to see the output here.')
     setCodeWorks(false)
@@ -334,13 +302,6 @@ onHighlightStarted: (_element, _step, { state }) => {
     setIsSending(true)
     setRequestError('')
     setStreamingAnswer('')
-    speechAudioUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
-    speechAudioUrlsRef.current = []
-    setSpeechAudioUrls([])
-    setSpeechPlaybackIndex(null)
-    setSpeechMessageIndex(conversation.length + 1)
-    setSpeechError('')
-    setIsSpeaking(false)
     setSentCodeCharacters(null)
     try {
       const response = await fetch('/api/ask/stream', {
@@ -398,41 +359,11 @@ onHighlightStarted: (_element, _step, { state }) => {
       previousSubmittedCodeRef.current = codeToSend
       setSentCodeCharacters(codeCharacters)
       setQuestion('')
-      if (answer.trim()) {
-        setIsSpeaking(true)
-        try {
-          const speechResponse = await fetch('/api/speak', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: answer }),
-          })
-          if (!speechResponse.ok) {
-            const speechResult = await speechResponse.json()
-            throw new Error(
-              speechResult.error || `Speech request failed (${speechResponse.status}).`,
-            )
-          }
-
-          const audio = await speechResponse.blob()
-          if (!audio.type.startsWith('audio/')) {
-            throw new Error('The server returned an invalid audio response.')
-          }
-          const url = URL.createObjectURL(audio)
-          speechAudioUrlsRef.current = [url]
-          setSpeechAudioUrls([url])
-          setSpeechPlaybackIndex(0)
-        } catch (error) {
-          setSpeechError(
-            error instanceof Error ? error.message : 'Could not generate speech.',
-          )
-        }
-      }
     } catch (error) {
       setRequestError(
         error instanceof Error ? error.message : 'Could not send the question.',
       )
     } finally {
-      setIsSpeaking(false)
       setIsSending(false)
     }
   }
@@ -447,12 +378,6 @@ onHighlightStarted: (_element, _step, { state }) => {
     saveHistory([])
     setRequestError('')
     setStreamingAnswer('')
-    speechAudioUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
-    speechAudioUrlsRef.current = []
-    setSpeechAudioUrls([])
-    setSpeechPlaybackIndex(null)
-    setSpeechMessageIndex(null)
-    setSpeechError('')
   }
 
   //Handle the tab key in the code editor to insert spaces instead of browser default behavior
@@ -549,40 +474,12 @@ onHighlightStarted: (_element, _step, { state }) => {
             >
               <strong>{message.role === 'user' ? 'You' : 'Pear Programmer'}</strong>
               <p>{message.content}</p>
-              {message.role === 'assistant' &&
-                speechMessageIndex === index &&
-                speechPlaybackIndex !== null &&
-                speechAudioUrls[speechPlaybackIndex] && (
-                  <audio
-                    ref={speechAudioRef}
-                    controls
-                    src={speechAudioUrls[speechPlaybackIndex]}
-                    aria-label="Listen to Pear Programmer's response"
-                  />
-                )}
-              {message.role === 'assistant' &&
-                speechMessageIndex === index &&
-                speechError && (
-                  <p className="prompt-error" role="alert">
-                    Speech could not be generated: {speechError}
-                  </p>
-                )}
             </article>
           ))}
           {streamingAnswer && (
             <article className="prompt-message prompt-message-assistant">
               <strong>Pear Programmer</strong>
               <p>{streamingAnswer}</p>
-              {speechMessageIndex === history.length + 1 &&
-                speechPlaybackIndex !== null &&
-                speechAudioUrls[speechPlaybackIndex] && (
-                  <audio
-                    ref={speechAudioRef}
-                    controls
-                    src={speechAudioUrls[speechPlaybackIndex]}
-                    aria-label="Listen to Pear Programmer's response"
-                  />
-                )}
             </article>
           )}
           {!history.length && !streamingAnswer && (
@@ -706,11 +603,9 @@ onHighlightStarted: (_element, _step, { state }) => {
         <button className="prompt-submit" type="submit" disabled={isSending}>
           {isSending ? 'Sending…' : 'Send'}
         </button>
-        {(isSending || isSpeaking) && (
+        {isSending && (
           <p className="prompt-status" role="status">
-            {isSpeaking
-              ? 'Generating speech…'
-              : 'Generating response…'}
+            Generating response…
           </p>
         )}
         {requestError && (

@@ -1,28 +1,9 @@
 import json
 import os
 import re
-import sys
-import tempfile
-import threading
 import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from database import init_db, log_conversation, log_event, log_login
-
-TTS_VENV = "/workspace/venv-tts"
-TTS_PYTHON = f"{TTS_VENV}/bin/python"
-TOKENIZER_COMPAT_ENV = "PLAPRE_TOKENIZER_COMPAT"
-is_vllm_worker = os.environ.get(TOKENIZER_COMPAT_ENV) == "1"
-if not is_vllm_worker and (
-    os.path.abspath(sys.prefix) != TTS_VENV
-    or "LD_LIBRARY_PATH" in os.environ
-    or __spec__ is None
-    or __spec__.name != "prompt_server"
-):
-    env = os.environ.copy()
-    env.pop("LD_LIBRARY_PATH", None)
-    env["VIRTUAL_ENV"] = TTS_VENV
-    env["PATH"] = f"{TTS_VENV}/bin:{env.get('PATH', '')}"
-    os.execve(TTS_PYTHON, [TTS_PYTHON, "-m", "prompt_server", *sys.argv[1:]], env)
 
 from prompt import ask, ask_stream
 
@@ -36,61 +17,6 @@ MAX_EXERCISE_CONTEXT_CHARACTERS = 12_000
 MAX_EXERCISE_ID_CHARACTERS = 80
 MAX_HISTORY_MESSAGES = 12
 MAX_HISTORY_CHARACTERS = 8_000
-MAX_SPEECH_CHARACTERS = 4_000
-
-_tts = None
-_tts_lock = threading.Lock()
-
-
-def _patch_plapre_tokenizer():
-    from transformers import PreTrainedTokenizerFast
-    import transformers.models.auto.tokenization_auto as tokenization_auto
-    from plapre.inference import _patch_tokenizer_compat
-
-    _patch_tokenizer_compat()
-    original = tokenization_auto.tokenizer_class_from_name
-    if getattr(original, "_plapre_backend_patched", False):
-        return
-
-    # The gated checkpoint uses a tokenizer class unavailable in Transformers 4.
-    def patched(class_name):
-        if class_name == "TokenizersBackend":
-            return PreTrainedTokenizerFast
-        return original(class_name)
-
-    patched._plapre_backend_patched = True
-    tokenization_auto.tokenizer_class_from_name = patched
-
-
-if os.environ.get(TOKENIZER_COMPAT_ENV) == "1":
-    _patch_plapre_tokenizer()
-
-
-def synthesize_speech(text):
-    global _tts
-
-    with _tts_lock:
-        if _tts is None:
-            try:
-                from plapre import Plapre
-            except ImportError as error:
-                raise RuntimeError(
-                    "Plapre is unavailable in venv-tts. Follow the TTS setup in "
-                    "app/README.md, then restart prompt_server.py."
-                ) from error
-            os.environ[TOKENIZER_COMPAT_ENV] = "1"
-            _patch_plapre_tokenizer()
-            _tts = Plapre("syvai/plapre-nano")
-
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as audio_file:
-            audio_path = audio_file.name
-
-        try:
-            _tts.speak(text, output=audio_path, split_sentences=True, speaker="kaj")
-            with open(audio_path, "rb") as audio_file:
-                return audio_file.read()
-        finally:
-            os.unlink(audio_path)
 
 
 class PromptRequestHandler(BaseHTTPRequestHandler):
@@ -216,10 +142,6 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
 
         if self.path == "/api/log-event":
             self._handle_log_event()
-            return
-
-        if self.path == "/api/speak":
-            self._handle_speak()
             return
 
         if self.path not in {"/api/ask", "/api/ask/stream"}:
@@ -428,53 +350,6 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
             except (BrokenPipeError, ConnectionResetError):
                 self.close_connection = True
 
-    def _handle_speak(self):
-        try:
-            content_length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            self._send_json(400, {"error": "Invalid Content-Length header."})
-            return
-
-        if content_length < 0:
-            self._send_json(400, {"error": "Invalid Content-Length header."})
-            return
-
-        if content_length > MAX_REQUEST_SIZE:
-            self._send_json(413, {"error": "Request is too large."})
-            return
-
-        try:
-            payload = json.loads(self.rfile.read(content_length))
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            self._send_json(400, {"error": "Request body must be valid JSON."})
-            return
-
-        text = payload.get("text") if isinstance(payload, dict) else None
-        if not isinstance(text, str) or not text.strip():
-            self._send_json(400, {"error": "Please provide text to speak."})
-            return
-        text = text.strip()
-        if len(text) > MAX_SPEECH_CHARACTERS:
-            self._send_json(
-                413,
-                {"error": f"Text must be {MAX_SPEECH_CHARACTERS:,} characters or fewer."},
-            )
-            return
-
-        try:
-            audio = synthesize_speech(text)
-        except Exception as error:
-            self.log_error("Text-to-speech generation failed: %s", error)
-            self._send_json(502, {"error": f"Could not generate speech: {error}"})
-            return
-
-        self.send_response(200)
-        self.send_header("Content-Type", "audio/wav")
-        self.send_header("Content-Length", str(len(audio)))
-        self.end_headers()
-        self.wfile.write(audio)
-
-
 def main():
     init_db()
     server = ThreadingHTTPServer((HOST, PORT), PromptRequestHandler)
@@ -483,6 +358,4 @@ def main():
 
 
 if __name__ == "__main__":
-    server_pid = os.environ.setdefault("PROMPT_API_SERVER_PID", str(os.getpid()))
-    if server_pid == str(os.getpid()):
-        main()
+    main()
