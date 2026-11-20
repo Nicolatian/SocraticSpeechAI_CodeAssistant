@@ -1,0 +1,17 @@
+{
+    "name": "vLLM Spark Development",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    "workspaceMount": "source=/home/karuna/projects/vllm-test,target=/workspace,type=bind",
+    "workspaceFolder": "/workspace",
+    "runArgs": [
+        "--device=nvidia.com/gpu=all",
+        "--ipc=host",
+        "--ulimit=stack=67108864"
+    ],
+    "mounts": [
+        "source=/models,target=/models,type=bind"
+    ]
+}

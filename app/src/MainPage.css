@@ -1,0 +1,460 @@
+.main-page {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.chat-log-toggle {
+  position: absolute;
+  z-index: 3;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 9px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  background: rgba(37, 37, 38, 0.94);
+  color: #f1f1f1;
+  cursor: pointer;
+}
+
+.chat-log-toggle svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.chat-log-toggle:hover {
+  border-color: var(--accent-border);
+  background: #333;
+}
+
+.chat-log-toggle:focus-visible {
+  outline: 2px solid #569cd6;
+  outline-offset: 2px;
+}
+
+.chat-log-panel {
+  position: absolute;
+  z-index: 2;
+  top: 68px;
+  right: 16px;
+  display: flex;
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(65vh, 560px);
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid #555;
+  border-radius: 8px;
+  background: rgba(30, 30, 30, 0.98);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  color: #d4d4d4;
+  font: 14px/1.4 var(--sans);
+}
+
+.chat-log-panel .prompt-history-header {
+  position: sticky;
+  top: -14px;
+  z-index: 1;
+  margin: -14px -14px 0;
+  padding: 14px;
+  border-bottom: 1px solid #3c3c3c;
+  background: #1e1e1e;
+}
+
+.chat-log-empty {
+  margin: 0;
+  color: #9da0a6;
+}
+
+.category-dialog {
+  position: fixed;
+  width: min(560px, calc(100vw - 32px));
+  box-sizing: border-box;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.category-dialog::backdrop {
+  background: rgba(15, 17, 22, 0.65);
+  backdrop-filter: blur(3px);
+}
+
+.category-dialog h2 {
+  margin: 0 32px 8px;
+  color: white;
+}
+
+.category-dialog p {
+  margin-bottom: 24px;
+}
+
+.category-dialog-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.category-dialog-close:focus-visible,
+.category-options button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.category-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.category-options button {
+  aspect-ratio: 1;
+  padding: 10px;
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font: 14px/1.3 var(--sans);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.category-options button:hover,
+.category-options button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+@media (max-width: 400px) {
+  .category-dialog {
+    padding: 24px 20px;
+  }
+
+  .category-options {
+    gap: 8px;
+  }
+
+  .category-options button {
+    padding: 6px;
+    font-size: 12px;
+  }
+}
+
+.pear-stage,
+.code-editor {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.pear-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #17191f;
+}
+
+.pear-preview {
+  display: block;
+  width: min(100%, 420px);
+  height: 100%;
+  object-fit: contain;
+}
+
+.main-home-link {
+  position: absolute;
+  z-index: 1;
+  top: 20px;
+  left: 20px;
+  margin: 0;
+  color: #f3f4f6;
+  background: rgba(15, 17, 22, 0.8);
+}
+
+.main-home-link:hover {
+  border-color: var(--accent-border);
+}
+
+.code-editor {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border-top: 1px solid #3c3c3c;
+}
+
+.editor-toolbar {
+  display: flex;
+  flex: 0 0 42px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid #333;
+  background: #252526;
+  font: 13px/1 var(--sans);
+}
+
+.editor-file-name {
+  color: #f1f1f1;
+}
+
+.editor-language {
+  color: #9da0a6;
+}
+
+.editor-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 14px 0;
+  font: 14px/1.6 var(--mono);
+}
+
+.editor-line-numbers {
+  flex: 0 0 48px;
+  overflow: hidden;
+  margin: 0;
+  padding: 0 12px 0 0;
+  color: #858585;
+  text-align: right;
+  user-select: none;
+}
+
+.editor-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  resize: none;
+  overflow: auto;
+  padding: 0 16px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #d4d4d4;
+  font: inherit;
+  line-height: inherit;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.editor-input:focus-visible {
+  outline: 1px solid #569cd6;
+  outline-offset: -1px;
+}
+
+.prompt-form {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid #3c3c3c;
+  background: #252526;
+  color: #d4d4d4;
+  font: 14px/1.4 var(--sans);
+}
+
+.prompt-label {
+  color: #d4d4d4;
+}
+
+.exercise-briefing {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #3c3c3c;
+  color: #d4d4d4;
+}
+
+.exercise-briefing p {
+  color: #9da0a6;
+}
+
+.prompt-input {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #1e1e1e;
+  color: #f1f1f1;
+  font: inherit;
+}
+
+.prompt-input:focus-visible,
+.prompt-submit:focus-visible {
+  outline: 2px solid #569cd6;
+  outline-offset: 2px;
+}
+
+.prompt-submit {
+  padding: 9px 16px;
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  background: var(--accent-bg);
+  color: #f1f1f1;
+  font: inherit;
+  cursor: pointer;
+}
+
+.prompt-submit:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.prompt-status,
+.prompt-error,
+.prompt-context-status {
+  grid-column: 2 / -1;
+  font-size: 12px;
+}
+
+.prompt-status {
+  color: #9da0a6;
+}
+
+.prompt-error {
+  color: #ff8a8a;
+}
+
+.prompt-context-status {
+  color: #9da0a6;
+}
+
+.prompt-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #9da0a6;
+}
+
+.prompt-clear-history {
+  padding: 4px 8px;
+  border: 1px solid #555;
+  border-radius: 4px;
+  background: #252526;
+  color: #d4d4d4;
+  font: inherit;
+  cursor: pointer;
+}
+
+.prompt-clear-history:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.prompt-message {
+  display: grid;
+  gap: 3px;
+  color: #d4d4d4;
+}
+
+.prompt-message strong {
+  color: #c7a6e8;
+}
+
+.prompt-message p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.prompt-message audio {
+  width: min(100%, 360px);
+}
+
+@media (max-width: 600px) {
+  .pear-preview {
+    width: min(100%, 300px);
+  }
+
+  .main-home-link {
+    top: 12px;
+    left: 12px;
+  }
+
+  .prompt-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .prompt-label {
+    grid-column: 1 / -1;
+  }
+
+  .prompt-status,
+  .prompt-error,
+  .prompt-context-status {
+    grid-column: 1 / -1;
+  }
+
+  .chat-log-toggle {
+    top: 12px;
+    right: 12px;
+  }
+
+  .chat-log-panel {
+    top: 64px;
+    right: 12px;
+    max-height: min(70vh, 560px);
+  }
+}
+
+.python-run-button.tutorial-run-highlight {
+  outline: 2px solid #e2baff;
+  outline-offset: 3px;
+  box-shadow: 0 0 8px 2px rgba(192, 105, 255, 0.45);
+  animation: tutorial-run-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes tutorial-run-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px 2px rgba(192, 105, 255, 0.45);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(192, 105, 255, 0.4),
+      0 0 24px 8px rgba(174, 74, 255, 0.65);
+  }
+}
+.main-page .driver-active-element {
+  outline: 1px solid rgba(190, 235, 130, 0.65);
+  outline-offset: -2px;
+  box-shadow:
+    0 0 16px rgba(156, 220, 88, 0.24),
+    inset 0 0 20px rgba(156, 220, 88, 0.12);
+}
+.python-run-button:not(:disabled):hover {
+  background-image: linear-gradient(
+    rgb(220 255 225 / 28%),
+    rgb(220 255 225 / 28%)
+  );
+}

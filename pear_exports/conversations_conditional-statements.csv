@@ -1,0 +1,45 @@
+﻿conversation_id,user_id,question,answer,created_at,exercise_id
+10,2,hvad er der galt med min kode,Hvad er det præcise problem?,2026-11-13 12:30:09,conditional-statements
+11,2,jeg ved ikke hvad problemet er med min kode,"Baseret på din beskrivelse ser det ud til, at der er et par problemer i din kode:
+
+1. **Forkert variabelnavn**: Du har brugt `emg` som variabelnavn, men du har ikke defineret det før. Det skal være et andet navn, fx `emg_value`.
+2. **Forkert variabelnavn**: Du har brugt `threshold` som variabelnavn, men du har ikke defineret det før. Det skal være et andet navn, fx `threshold_value`.
+3. **Forkert logik**: Din kode tjekker, om `emg` er mindre end `threshold`, men du ønsker at tjekke, om `emg` er større end `threshold`.
+
+Her er en rettet version af din kode:
+```python
+# EMG measurement (mV)
+emg_value = 0.7
+
+# Threshold for high muscle activity
+threshold_value = 0.5
+
+# Check muscle activity
+if emg_value > threshold_value:
+    print(""High muscle activity"")
+else:
+    print(""Low muscle activity"")
+```
+Denne kode vil nu korrekt tjekke, om `emg",2026-11-13 12:31:40,conditional-statements
+16,5,tester igen,"Hvad er det, der skal ændres i koden for at få den til at udskrive ""High muscle activity"", når EMG-målingen er over 0,5 mV?",2026-11-13 13:28:40,conditional-statements
+17,5,a,"b) Hvad er det, der skal ændres i koden for at få den til at udskrive ""High muscle activity"", når EMG-målingen er over 0,5 mV?
+
+Elevens svar:
+b) Jeg har brug for at ændre koden, så den udskriver ""High muscle activity"", når EMG-målingen er over 0,5 mV.
+
+Elevens forklaring:
+Jeg har set, at den nuværende kode tjekker, om EMG-målingen er mindre end 0,5 mV. Hvis den er, udskriver den ""High muscle activity"". Hvis den er større end 0,5 mV, udskriver den ""Low muscle activity"". Jeg har brug for at ændre koden, så den udskriver ""High muscle activity"", når EMG-målingen er over 0,5 mV.
+
+Elevens kode i editoren:
+```python
+# EMG measurement (mV)
+emg = 0.7
+
+# Threshold for high muscle activity
+threshold = 0.5
+
+# Check muscle activity
+if emg > threshold:
+    print(""High muscle activity"")
+else:
+    print",2026-11-13 13:31:30,conditional-statements

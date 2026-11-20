@@ -1,0 +1,84 @@
+/* Two equal columns: Python editor on the left, output console on the right. */
+.editor-and-output {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.editor-and-output .code-editor,
+.python-console {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.python-console {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 350px;
+  overflow: hidden;
+  border: 1px solid #444;
+  border-radius: 8px;
+  background: #1e1e1e;
+  color: #f2f2f2;
+}
+
+.python-console-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #444;
+  background: #292929;
+}
+
+.python-run-button {
+  padding: 0.4rem 0.85rem;
+  border: 0;
+  border-radius: 5px;
+  background: #78b88b;
+  color: #142018;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.python-run-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.python-console-output {
+  flex: 1 1 0;
+  min-height: 260px;
+  max-height: 500px;
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  background: #171717;
+  color: #f2f2f2;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.python-console-status {
+  padding: 0.6rem 0.85rem;
+  border-top: 1px solid #444;
+  color: #c8c8c8;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .editor-and-output {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
