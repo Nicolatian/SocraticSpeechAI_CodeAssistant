@@ -3,3 +3,4 @@ __pycache__/
 node_modules/
 app/README.md
 pear_logs.db
+chatterbox-tts-env
