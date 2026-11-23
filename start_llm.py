@@ -1,9 +1,13 @@
 import json, os, sys
 
-#Re-launch with the venv's Python (Transformers 5.x) if started with another interpreter
-VENV_PYTHON = "/workspace/venv-mimir/bin/python"
-if os.path.abspath(sys.prefix) != "/workspace/venv-mimir":
-    os.execv(VENV_PYTHON, [VENV_PYTHON] + sys.argv)
+WORKSPACE_ROOT = os.path.dirname(os.path.abspath(__file__))
+LLM_ENV = os.path.join(WORKSPACE_ROOT, "chatterbox-tts-env")
+LLM_PYTHON = os.path.join(LLM_ENV, "bin", "python")
+
+if os.path.abspath(sys.prefix) != LLM_ENV:
+    if not os.path.isfile(LLM_PYTHON):
+        raise FileNotFoundError(f"LLM Python environment not found: {LLM_PYTHON}")
+    os.execv(LLM_PYTHON, [LLM_PYTHON, os.path.abspath(__file__), *sys.argv[1:]])
 
 import threading, time, uuid
 from typing import List, Optional

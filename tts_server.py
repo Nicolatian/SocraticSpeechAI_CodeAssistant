@@ -5,6 +5,7 @@ from huggingface_hub import snapshot_download
 import soundfile as sf
 import torch
 import io
+import os
 import time
 
 app = Flask(__name__)
@@ -19,6 +20,11 @@ model_dir = snapshot_download(repo_id=MODEL_ID)
 model = ChatterboxMultilingualTTS.from_local(model_dir, device="cuda")
 
 print(f"Model loaded in {time.perf_counter() - start:.2f} seconds!")
+
+
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok", "pid": os.getpid()})
 
 
 @app.route("/tts", methods=["POST"])

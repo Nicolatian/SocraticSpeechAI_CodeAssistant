@@ -64,10 +64,12 @@ generation finishes.
 After code changes, restart `prompt_server.py`; restart `start_llm.py` only if
 its code changed. Vite reloads frontend changes automatically.
 
-From the workspace root, start the local model server with `python start_llm.py`.
-In a second terminal, also from the workspace root, start the prompt API and
-TTS with `python prompt_server.py`. It automatically uses `venv-tts`. Then run
-the React app from this directory with `npm run dev`. Open `/MainPage`, edit
+From the `app` directory, run `npm run start:all` to start the local model
+server, prompt API, TTS server, and React app together. Press **Ctrl+C** to
+stop them. The launcher starts TTS with `chatterbox-tts-env` and waits for its
+model to load before starting the prompt API, model server, and React app.
+The model server automatically relaunches with `chatterbox-tts-env`, which
+provides the Transformers version required by Ministral. Open `/MainPage`, edit
 the code, type a question, and select **Send**. The current editor contents
 are sent with the question, and the LLM response appears in the chat history.
 Code longer than 20,000 characters is rejected with an error. The page
