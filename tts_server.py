@@ -3,14 +3,17 @@ from flask import Flask, request, jsonify, send_file
 from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 from huggingface_hub import snapshot_download
 import soundfile as sf
-import torch
 import io
 import os
+import tempfile
+import threading
 import time
 
 app = Flask(__name__)
 
 MODEL_ID = "CoRal-project/roest-v3-chatterbox-500m"
+OUTPUT_WAV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output.wav")
+tts_lock = threading.Lock()
 
 print("Loading TTS model...")
 
@@ -27,38 +30,57 @@ def health():
     return jsonify({"status": "ok", "pid": os.getpid()})
 
 
+@app.route("/tts/audio", methods=["GET"])
+def latest_audio():
+    if not os.path.isfile(OUTPUT_WAV):
+        return jsonify({"error": "No speech has been generated yet."}), 404
+
+    response = send_file(OUTPUT_WAV, mimetype="audio/wav", conditional=False)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.route("/tts", methods=["POST"])
 def generate_speech():
-    data = request.get_json()
-    text = data.get("text", "")
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object."}), 400
 
-    if not text.strip():
+    text = data.get("text")
+    if not isinstance(text, str) or not text.strip():
         return jsonify({"error": "No text provided"}), 400
 
-    start = time.perf_counter()
+    with tts_lock:
+        start = time.perf_counter()
+        wav = model.generate(text, language_id="da")
+        generation_time = time.perf_counter() - start
 
-    wav = model.generate(text, language_id="da")
+        audio_buffer = io.BytesIO()
+        sf.write(
+            audio_buffer,
+            wav.squeeze().cpu().numpy(),
+            model.sr,
+            format="WAV"
+        )
+        audio_bytes = audio_buffer.getvalue()
 
-    generation_time = time.perf_counter() - start
-
-    audio_buffer = io.BytesIO()
-
-    sf.write(
-        audio_buffer,
-        wav.squeeze().cpu().numpy(),
-        model.sr,
-        format="WAV"
-    )
-
-    audio_buffer.seek(0)
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=os.path.dirname(OUTPUT_WAV),
+                prefix=".output-",
+                suffix=".wav",
+                delete=False,
+            ) as temp_file:
+                temp_path = temp_file.name
+                temp_file.write(audio_bytes)
+            os.replace(temp_path, OUTPUT_WAV)
+        finally:
+            if temp_path is not None and os.path.exists(temp_path):
+                os.unlink(temp_path)
 
     print(f"Generated speech in {generation_time:.2f} seconds")
-
-    return send_file(
-        audio_buffer,
-        mimetype="audio/wav",
-        download_name="speech.wav"
-    )
+    return jsonify({"audioUrl": "/tts/audio"})
 
 
 if __name__ == "__main__":

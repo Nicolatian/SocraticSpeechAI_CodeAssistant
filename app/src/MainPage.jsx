@@ -90,6 +90,46 @@ async function* readServerEvents(response) {
   }
 }
 
+async function readJsonResponse(response, service) {
+  if (!response.headers.get('content-type')?.includes('application/json')) {
+    throw new Error(`${service} returned a non-JSON response (${response.status}).`)
+  }
+
+  const body = await response.text()
+  if (!body.trim()) {
+    throw new Error(`${service} returned an empty response (${response.status}).`)
+  }
+
+  try {
+    return JSON.parse(body)
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(`${service} returned invalid JSON (${response.status}).`)
+    }
+    throw error
+  }
+}
+
+async function getResponseError(response, service) {
+  if (response.headers.get('content-type')?.includes('application/json')) {
+    const body = await response.text()
+    if (body.trim()) {
+      try {
+        const result = JSON.parse(body)
+        if (typeof result?.error === 'string') {
+          return result.error
+        }
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) {
+          throw error
+        }
+      }
+    }
+  }
+
+  return `${service} request failed (${response.status}).`
+}
+
 function MainPage() {
   const userId = sessionStorage.getItem('pear-user-id')
   const tutorialKey = `pear-tutorial-seen:${userId}`
@@ -125,8 +165,31 @@ const tutorialSprites = {
   const [isSending, setIsSending] = useState(false)
   const [streamingAnswer, setStreamingAnswer] = useState('')
   const [requestError, setRequestError] = useState('')
+  const [speechError, setSpeechError] = useState('')
+  const [speechAudioUrl, setSpeechAudioUrl] = useState('')
+  const speechAudioRef = useRef(null)
   const [sentCodeCharacters, setSentCodeCharacters] = useState(null)
   const [history, setHistory] = useState([])
+
+  useEffect(() => {
+    if (!speechAudioUrl || !speechAudioRef.current) {
+      return
+    }
+
+    const audio = speechAudioRef.current
+    audio.load()
+    audio.play().catch((error) => {
+      const playbackWasBlocked =
+        error instanceof Error && error.name === 'NotAllowedError'
+      setSpeechError(
+        playbackWasBlocked
+          ? 'Automatic playback was blocked by the browser.'
+          : `Audio playback failed: ${
+              error instanceof Error ? error.message : 'Unknown playback error.'
+            }`,
+      )
+    })
+  }, [speechAudioUrl])
 
 // Python code editor state
 const [consoleOutput, setConsoleOutput] = useState('Press Run code to see the output here.')
@@ -148,10 +211,10 @@ useEffect(() => {
       const response = await fetch(
         `/api/run-count?userId=${encodeURIComponent(userId)}`,
       )
-      const result = await response.json()
       if (!response.ok) {
-        throw new Error(result.error || `Request failed (${response.status}).`)
+        throw new Error(await getResponseError(response, 'Run count API'))
       }
+      const result = await readJsonResponse(response, 'Run count API')
       if (!Number.isInteger(result.runCount) || result.runCount < 0) {
         throw new Error('The server returned an invalid run count.')
       }
@@ -281,10 +344,10 @@ onHighlightStarted: (_element, _step, { state }) => {
         }),
       })
         .then(async (response) => {
-          const result = await response.json()
           if (!response.ok) {
-            throw new Error(result.error || `Request failed (${response.status}).`)
+            throw new Error(await getResponseError(response, 'Run tracking API'))
           }
+          const result = await readJsonResponse(response, 'Run tracking API')
           if (!Number.isInteger(result.runNumber) || result.runNumber < 1) {
             throw new Error('The server returned an invalid run number.')
           }
@@ -350,6 +413,8 @@ onHighlightStarted: (_element, _step, { state }) => {
     setHistory([])
     setQuestion('')
     setRequestError('')
+    setSpeechError('')
+    setSpeechAudioUrl('')
     setStreamingAnswer('')
     runIdRef.current += 1
     setConsoleOutput('Press Run code to see the output here.')
@@ -380,6 +445,8 @@ onHighlightStarted: (_element, _step, { state }) => {
     //Send a question to the backend API and handle the response
     setIsSending(true)
     setRequestError('')
+    setSpeechError('')
+    setSpeechAudioUrl('')
     setStreamingAnswer('')
     setSentCodeCharacters(null)
     try {
@@ -397,8 +464,7 @@ onHighlightStarted: (_element, _step, { state }) => {
         }),
       })
       if (!response.ok) {
-        const result = await response.json()
-        throw new Error(result.error || `Request failed (${response.status}).`)
+        throw new Error(await getResponseError(response, 'Prompt API'))
       }
       if (response.headers.get('content-type')?.includes('text/event-stream') !== true) {
         throw new Error('The server returned an invalid streaming response.')
@@ -438,6 +504,29 @@ onHighlightStarted: (_element, _step, { state }) => {
       previousSubmittedCodeRef.current = codeToSend
       setSentCodeCharacters(codeCharacters)
       setQuestion('')
+
+      try {
+        const speechResponse = await fetch('/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: answer }),
+        })
+        if (!speechResponse.ok) {
+          throw new Error(await getResponseError(speechResponse, 'TTS server'))
+        }
+
+        const result = await readJsonResponse(speechResponse, 'TTS server')
+        if (typeof result.audioUrl !== 'string') {
+          throw new Error('The TTS server returned an invalid audio response.')
+        }
+        setSpeechAudioUrl(`${result.audioUrl}?v=${Date.now()}`)
+      } catch (error) {
+        setSpeechError(
+          error instanceof Error
+            ? `Speech could not be generated: ${error.message}`
+            : 'Speech could not be generated.',
+        )
+      }
     } catch (error) {
       setRequestError(
         error instanceof Error ? error.message : 'Could not send the question.',
@@ -456,6 +545,7 @@ onHighlightStarted: (_element, _step, { state }) => {
   function handleClearHistory() {
     saveHistory([])
     setRequestError('')
+    setSpeechError('')
     setStreamingAnswer('')
   }
 
@@ -676,6 +766,14 @@ onHighlightStarted: (_element, _step, { state }) => {
       </div>
 
       <form className="prompt-form" onSubmit={handleQuestionSubmit}>
+        {speechAudioUrl && (
+          <audio
+            ref={speechAudioRef}
+            hidden
+            aria-hidden="true"
+            src={speechAudioUrl}
+          />
+        )}
         {selectedExercise && (
           <section className="exercise-briefing" aria-label="Exercise instructions">
             <strong>{selectedExercise.label} exercise</strong>
@@ -705,6 +803,11 @@ onHighlightStarted: (_element, _step, { state }) => {
         {requestError && (
           <p className="prompt-error" role="alert">
             {requestError}
+          </p>
+        )}
+        {speechError && (
+          <p className="prompt-error" role="alert">
+            {speechError}
           </p>
         )}
         {sentCodeCharacters !== null && (

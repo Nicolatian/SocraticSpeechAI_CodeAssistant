@@ -2,6 +2,7 @@
 set -u
 
 pids=()
+process_names=()
 tts_pid=""
 
 stop_processes() {
@@ -26,6 +27,7 @@ start_process() {
   printf '[%s] starting\n' "$name"
   "$@" &
   pids+=("$!")
+  process_names+=("$name")
 }
 
 start_process PROMPT python ../prompt_server.py
@@ -64,5 +66,34 @@ elif [[ -n "$tts_pid" ]]; then
 fi
 
 status=0
-wait -n "${pids[@]}" || status=$?
+while ((${#pids[@]})); do
+  exited_pid=""
+  if wait -n -p exited_pid "${pids[@]}"; then
+    process_status=0
+  else
+    process_status=$?
+  fi
+
+  if [[ -z "$exited_pid" ]]; then
+    printf '[launcher] could not determine which service exited (status %s)\n' \
+      "$process_status" >&2
+    exit "$process_status"
+  fi
+
+  for index in "${!pids[@]}"; do
+    if [[ "${pids[$index]}" == "$exited_pid" ]]; then
+      printf '[%s] exited with status %s; leaving remaining services running\n' \
+        "${process_names[$index]}" "$process_status" >&2
+      unset 'pids[index]' 'process_names[index]'
+      pids=("${pids[@]}")
+      process_names=("${process_names[@]}")
+      break
+    fi
+  done
+
+  if (( process_status != 0 && status == 0 )); then
+    status=$process_status
+  fi
+done
+
 exit "$status"

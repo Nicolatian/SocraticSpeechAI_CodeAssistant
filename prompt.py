@@ -1,5 +1,5 @@
 import json
-import re
+from http.client import HTTPException
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -144,6 +144,8 @@ def _open(request):
 		raise RuntimeError(
 			"Could not reach vLLM at localhost:8000. Start it with start_llm.py first."
 		) from error
+	except (HTTPException, OSError) as error:
+		raise RuntimeError(f"vLLM connection failed: {error}") from error
 
 
 def ask(
@@ -165,7 +167,7 @@ def ask(
 	)
 	with _open(request) as response:
 		result = json.load(response)
-	return strip_answer_wrappers(result["choices"][0]["message"]["content"])
+	return result["choices"][0]["message"]["content"]
 
 
 def ask_stream(
@@ -220,7 +222,9 @@ def ask_stream(
 					yield content
 			if not complete:
 				raise RuntimeError("vLLM ended the response before generation completed.")
+		except (HTTPException, OSError) as error:
+			raise RuntimeError(f"vLLM streaming connection failed: {error}") from error
 		finally:
 			response.close()
 
-	return strip_answer_wrappers_from_stream(iter_tokens())
+	return iter_tokens()
