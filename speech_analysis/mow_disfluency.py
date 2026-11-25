@@ -2,67 +2,104 @@ import json
 import numpy as np
 import onnxruntime as ort
 from huggingface_hub import hf_hub_download
-from transformers import AutoTokenizer
+from transformers import PreTrainedTokenizerFast
 
 MODEL_ID = "sam-castro/mow-disfluency-classifier"
-
 
 class MowDisfluency:
 
     def __init__(self):
-        model_path = hf_hub_download(MODEL_ID, "DisfluencyClassifier.onnx")
+        print("Loading Mów...")
 
-        label_path = hf_hub_download( MODEL_ID,"label_map.json")
+        model_path = hf_hub_download(repo_id=MODEL_ID, filename="DisfluencyClassifier.onnx")
 
-        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+        labels_path = hf_hub_download(repo_id=MODEL_ID, filename="label_map.json")
+
+        tokenizer_path = hf_hub_download(
+            repo_id=MODEL_ID,
+            filename="tokenizer.json"
+        )
+        tokenizer_config_path = hf_hub_download(
+            repo_id=MODEL_ID,
+            filename="tokenizer_config.json"
+        )
+        with open(tokenizer_config_path, encoding="utf-8") as file:
+            tokenizer_config = json.load(file)
+
+        self.tokenizer = PreTrainedTokenizerFast(
+            tokenizer_file=tokenizer_path,
+            cls_token=tokenizer_config["cls_token"],
+            mask_token=tokenizer_config["mask_token"],
+            pad_token=tokenizer_config["pad_token"],
+            sep_token=tokenizer_config["sep_token"],
+            unk_token=tokenizer_config["unk_token"],
+            model_max_length=tokenizer_config["model_max_length"]
+        )
 
         self.model = ort.InferenceSession(
             model_path,
             providers=["CPUExecutionProvider"]
         )
 
-        with open(label_path, encoding="utf-8") as f:
-            labels = json.load(f)
+        with open(labels_path, encoding="utf-8") as file:
+            raw_labels = json.load(file)
 
-        if isinstance(labels, list):
-            self.labels = {i: label for i, label in enumerate(labels)}
+        # Convert label map into ID -> label
+        if isinstance(raw_labels, list):
+            self.labels = dict(enumerate(raw_labels))
+        elif all(str(key).isdigit() for key in raw_labels):
+            self.labels = {
+                int(key): value for key, value in raw_labels.items()
+            }
         else:
             self.labels = {
-                int(k): v for k, v in labels.items()
+                int(value): key for key, value in raw_labels.items()
             }
+
+        print("Mów ready.")
 
     def analyse(self, transcript):
 
-        encoded = self.tokenizer(transcript, return_tensors="np", truncation=True, max_length=512)
+        inputs = self.tokenizer(
+            transcript,
+            return_tensors="np",
+            truncation=True,
+            max_length=512
+        )
 
-        inputs = {
-            item.name: encoded[item.name].astype(np.int64)
+        feeds = {
+            item.name: inputs[item.name].astype(np.int64)
             for item in self.model.get_inputs()
-            if item.name in encoded
+            if item.name in inputs
         }
 
-        output = self.model.run(None, inputs)[0]
-        predictions = np.argmax(output, axis=-1)[0]
+        logits = self.model.run(None, feeds)[0]
+        predictions = np.argmax(logits, axis=-1)[0]
 
-        counts = {"FP": 0, "RP": 0, "RV": 0, "PW": 0}
-        word_ids = encoded.word_ids()
+        counts = {
+            "FP": 0,
+            "RP": 0,
+            "RV": 0,
+            "PW": 0
+        }
 
-        counted_words = set()
-
-        for prediction, word_id in zip(predictions, word_ids):
-
-            if word_id is None or word_id in counted_words:
-                continue
-
-            counted_words.add(word_id)
+        for prediction in predictions:
             label = self.labels.get(int(prediction), "O")
+
             if label in counts:
                 counts[label] += 1
 
-        return counts
+        return {
+            "fillers": counts["FP"],
+            "repetitions": counts["RP"],
+            "revisions": counts["RV"],
+            "partial_words": counts["PW"]
+        }
 
 
 if __name__ == "__main__":
     detector = MowDisfluency()
-    text = "Øhm, I think it is index three. No, wait, index two."
-    print(detector.analyse(text))
+
+    example = "Øhm, I think it is index three. No, wait, maybe index two."
+
+    print(detector.analyse(example))

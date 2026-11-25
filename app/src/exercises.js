@@ -12,7 +12,10 @@ print("Third ECG measurement:", third_measurement)
 exercisePrompt: 'Make the program print the third ECG measurement.',
 verificationCriteria: [
       'The program must retrieve the third ECG measurement from the ecg list.',
-      'The program must use the correct Python list index.',
+      'The program must use the correct Python list index, which is index 2.',
+      'The retrieved measurement must have the value 0.8.',
+      'The program output must contain: Third ECG measurement: 0.8.',
+      'Outputting 0.4 is incorrect because that is the fourth measurement.',
       'The retrieved measurement must be printed.',
       'The program must execute without errors.'
     ],
