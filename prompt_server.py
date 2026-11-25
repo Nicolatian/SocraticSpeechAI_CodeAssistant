@@ -14,7 +14,7 @@ from database import (
     run_code,
 )
 
-from prompt import ask, ask_stream
+from prompt import ask, ask_stream, verify_solution
 
 MAX_LOG_REQUEST_SIZE = 16_384
 
@@ -155,6 +155,45 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
             return
 
         self._send_json(200, {"success": True, "runNumber": run_number})
+    
+    def _handle_verify_solution(self):
+        payload = self._read_log_payload(MAX_REQUEST_SIZE)
+        if payload is None:
+            return
+
+        exercise_prompt = payload.get("exercisePrompt")
+        verification_criteria = payload.get("verificationCriteria")
+        code = payload.get("code")
+        output = payload.get("output")
+        error = payload.get("error")
+
+        if (
+            not isinstance(exercise_prompt, str)
+            or not exercise_prompt.strip()
+            or not isinstance(verification_criteria, list)
+            or not verification_criteria
+            or not all(isinstance(item, str) for item in verification_criteria)
+            or not isinstance(code, str)
+            or not isinstance(output, str)
+            or (error is not None and not isinstance(error, str))
+        ):
+            self._send_json(400, {"error": "Invalid solution verification request."})
+            return
+
+        try:
+            solution_correct = verify_solution(
+                exercise_prompt,
+                verification_criteria,
+                code,
+                output,
+                error
+            )
+        except RuntimeError as error:
+            self.log_error("Could not verify student solution.")
+            self._send_json(502, {"error": str(error)})
+            return
+
+        self._send_json(200, {"solutionCorrect": solution_correct})
 
     def _handle_log_login(self):
         payload = self._read_log_payload()
@@ -226,6 +265,10 @@ class PromptRequestHandler(BaseHTTPRequestHandler):
 
         if self.path == "/api/run-code":
             self._handle_run_code()
+            return
+
+        if self.path == "/api/verify-solution":
+            self._handle_verify_solution()
             return
 
         if self.path == "/api/log-event":

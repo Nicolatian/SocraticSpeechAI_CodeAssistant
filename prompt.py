@@ -37,7 +37,26 @@ SYSTEM_PROMPT = (
 	"eller markup om selve svaret.\n"
 	"- Nævn aldrig code eller previous_code variablerne i dit svar"
 )
+VERIFICATION_PROMPT = """
+		You are a Python programming assignment evaluator.
 
+		Your task is to determine whether the student's code
+		fulfills the assignment requirements.
+
+		Evaluation rules:
+		- Use the assignment description and verification criteria.
+		- Evaluate the actual implementation, not just variable names.
+		- Consider the execution output.
+		- If execution produced an error, return FALSE.
+		- Accept different implementations if they satisfy
+		the assignment criteria.
+		- Do not require improvements that are not specified.
+		- All verification criteria must be fulfilled.
+
+		Return ONLY one of these values:
+		TRUE
+		FALSE
+		"""
 
 def format_teacher_notes(teacher_notes):
 	"""Accept a plain string or a dict with concept/knownIssues/hintLadder."""
@@ -228,3 +247,36 @@ def ask_stream(
 			response.close()
 
 	return iter_tokens()
+
+def verify_solution(exercise_prompt, verification_criteria, code, output, error=None):
+    messages = [
+        {
+            "role": "system",
+            "content": VERIFICATION_PROMPT
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Assignment:\n{exercise_prompt}\n\n"
+                f"Verification criteria:\n"
+                f"{json.dumps(verification_criteria, ensure_ascii=False)}\n\n"
+                f"Student code:\n{code}\n\n"
+                f"Execution output:\n{output}\n\n"
+                f"Execution error:\n{error or 'None'}"
+            )
+        }
+    ]
+
+    request = _make_request({
+        "model": MODEL_NAME,
+        "messages": messages,
+        "max_tokens": 10,
+        "temperature": 0
+    })
+
+    with _open(request) as response:
+        result = json.load(response)
+
+    answer = result["choices"][0]["message"]["content"].strip()
+
+    return answer.upper() == "TRUE"

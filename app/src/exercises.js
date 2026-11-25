@@ -10,6 +10,12 @@ measurements = ecg[3]
 print("Third ECG measurement:", third_measurement)
 `,
 exercisePrompt: 'Make the program print the third ECG measurement.',
+verificationCriteria: [
+      'The program must retrieve the third ECG measurement from the ecg list.',
+      'The program must use the correct Python list index.',
+      'The retrieved measurement must be printed.',
+      'The program must execute without errors.'
+    ],
 teacherNotes: {
   concept: 'Lister i Python er nulindekseret: den første plads har nummer 0, så den tredje måling ligger ikke på plads 3.',
   knownIssues: [
@@ -93,4 +99,200 @@ else:
 },
     explanation: 'Your goal is to make the program print "High muscle activity" when the EMG measurement is above the threshold.',
   },
+}
+export const exercisesByCategory = {
+  'array-indexing': [
+    exercises['array-indexing'],
+    {
+      label: 'Multidimensional ECG indexing',
+      starterCode: `# Two ECG recordings
+ecg = [
+    [0.1, 0.3, 0.8, 0.4, 0.2],
+    [0.2, 0.4, 0.7, 0.5, 0.3],
+]
+
+measurement = ecg[1][0]
+print("Measurement:", measurement)
+`,
+      exercisePrompt: 'Print the third measurement from the second ECG recording.',
+      explanation: 'Your goal is to retrieve the third measurement from the second ECG recording.',
+      teacherNotes: {
+        concept: 'I en liste af lister vælger det første indeks den indre liste. Det næste indeks vælger et element i den liste. Begge indekser starter ved nul.',
+        knownIssues: [
+          'Det første indeks vælger allerede den anden optagelse.',
+          'Det andet indeks vælger den første måling i optagelsen, selvom opgaven beder om den tredje.',
+          'Eleven kan komme til at ændre begge indekser, fordi de to indeksers roller bliver blandet sammen.',
+        ],
+        hintLadder: [
+          'Bed eleven køre koden og finde den viste værdi i en af optagelserne.',
+          'Spørg, hvad ecg[1] ville give, hvis de fjernede den sidste kantede parentes med indeks.',
+          'Bed eleven tælle målingerne i den valgte optagelse med Pythons nummerering.',
+          'Spørg, hvilket af de to indekser der skal ændres, og hvorfor det andet kan blive stående.',
+        ],
+      },
+    },
+    {
+      label: 'ECG time interval',
+      starterCode: `# ECG measurements taken twice per second, starting at 0 seconds
+ecg = [0.1, 0.3, 0.8, 0.4, 0.2, 0.7, 0.5, 0.3]
+samples_per_second = 2
+
+start_time = 2
+end_time = 3
+
+start_index = start_time
+end_index = end_time
+
+selected = ecg[start_index:end_index + 1]
+print("Selected measurements:", selected)
+`,
+      exercisePrompt: 'Print the ECG measurements from 2.0 through 3.0 seconds, including both endpoints.',
+      explanation: 'The recording starts at 0 seconds and contains two samples per second. Select the measurements at 2.0, 2.5, and 3.0 seconds.',
+      teacherNotes: {
+        concept: 'Tid i sekunder omregnes til et listeindeks ved hjælp af antallet af målinger pr. sekund. En Python-slice inkluderer startindekset og stopper før slutgrænsen.',
+        knownIssues: [
+          'Start- og sluttid bruges direkte som listeindekser. Med to målinger pr. sekund passer de indekser til et tidligere tidsinterval.',
+          'Udtrykket end_index + 1 er allerede nødvendigt for at få målingen ved sluttidspunktet med.',
+          'Eleven kan rette startindekset og glemme at omregne slutindekset.',
+        ],
+        hintLadder: [
+          'Spørg, hvor mange målinger eleven forventer mellem 2,0 og 3,0 sekunder, når begge endepunkter tæller med.',
+          'Bed eleven sætte tidspunkter på de første tre målinger, når optagelsen starter ved 0 sekunder.',
+          'Spørg, hvordan samples_per_second kan bruges til at finde indekset for både start- og sluttid.',
+          'Bed eleven forklare, hvad der ville ske med den sidste måling, hvis de fjernede + 1 fra slicen.',
+        ],
+      },
+    },
+  ],
+
+  'for-loops': [
+    exercises['for-loops'],
+    {
+      label: 'EMG accumulation',
+      starterCode: `emg = [0.2, 0.4, 0.6, 0.3, 0.5]
+
+total = 0
+for measurement in emg:
+    total = measurement
+
+average = total / len(emg)
+print("Average EMG:", average)
+`,
+      exercisePrompt: 'Fix the loop so all five EMG measurements contribute to the average.',
+      explanation: 'Your goal is to calculate the average of all five EMG measurements.',
+      teacherNotes: {
+        concept: 'En akkumulator gemmer en løbende sum. I hver iteration bruges den tidligere sum til at beregne den nye sum.',
+        knownIssues: [
+          'Linjen total = measurement overskriver summen i hver iteration.',
+          'Efter løkken indeholder total kun den sidste måling. Divisionen bruger allerede listens længde.',
+          'Eleven kan forsøge at ændre divisionen, selvom fejlen opstår, mens løkken opdaterer total.',
+        ],
+        hintLadder: [
+          'Bed eleven køre programmet og sammenligne resultatet med det gennemsnit, de forventer.',
+          'Spørg, hvad total indeholder efter den første og den anden iteration.',
+          'Spørg, hvor den første måling bliver af, når den anden måling gemmes i total.',
+          'Bed eleven beskrive, hvordan næste iteration både kan bruge den tidligere sum og den nye måling.',
+        ],
+      },
+    },
+    {
+      label: 'EMG interval averages',
+      starterCode: `intervals = [
+    [0.2, 0.4, 0.6],
+    [0.3, 0.5, 0.4],
+    [0.6, 0.2, 0.2],
+]
+
+averages = []
+total = 0
+
+for interval in intervals:
+    for measurement in interval:
+        total = total + measurement
+
+    average = total / len(interval)
+    averages.append(round(average, 4))
+
+print("Interval averages:", averages)
+`,
+      exercisePrompt: 'Calculate a separate average for each EMG interval.',
+      explanation: 'Your goal is to print one average per interval, using only the measurements in that interval.',
+      teacherNotes: {
+        concept: 'Den ydre løkke vælger et interval, og den indre løkke gennemgår målingerne i intervallet. Summen skal begynde ved nul for hvert nyt interval.',
+        knownIssues: [
+          'Total sættes til nul én gang før den ydre løkke, så summen fra det første interval følger med ind i det næste.',
+          'Det første gennemsnit kan være korrekt, selvom de næste gennemsnit bliver for høje.',
+          'Hvis eleven nulstiller total i den indre løkke, mister de summen ved hver ny måling.',
+        ],
+        hintLadder: [
+          'Bed eleven sammenligne de to første gennemsnit med det, de får ved at beregne hvert interval for sig.',
+          'Spørg, hvilken løkke der skifter interval, og hvilken der skifter måling.',
+          'Bed eleven følge værdien af total lige før løkken starter på det andet interval.',
+          'Spørg, hvor total kan nulstilles præcis én gang pr. interval.',
+        ],
+      },
+    },
+  ],
+
+  'conditional-statements': [
+    exercises['conditional-statements'],
+    {
+      label: 'High EMG measurements',
+      starterCode: `emg = [0.2, 0.5, 0.8, 0.6, 0.9]
+threshold = 0.7
+
+for measurement in emg:
+    if measurement < threshold:
+        print("High muscle activity:", measurement)
+`,
+      exercisePrompt: 'Print only the EMG measurements that are strictly above the threshold.',
+      explanation: 'Your goal is to print each EMG measurement above the threshold. A measurement equal to the threshold should be left out.',
+      teacherNotes: {
+        concept: 'Løkken gennemgår alle målinger. If-betingelsen afgør for hver måling, om den skal udskrives.',
+        knownIssues: [
+          'Sammenligningen vælger målinger under grænsen, selvom opgaven beder om målinger over den.',
+          'En sammenligning, der også accepterer lighed, ville give det samme output med den viste liste, fordi ingen måling er præcis lig med grænsen.',
+          'Løkken gennemgår allerede hele listen. Det er betingelsen, der skal rettes.',
+        ],
+        hintLadder: [
+          'Bed eleven forudsige, hvilke målinger der bør vises, og derefter køre programmet.',
+          'Spørg, hvad if-betingelsen betyder med ord.',
+          'Bed eleven følge én måling under grænsen og én over grænsen gennem betingelsen.',
+          'Spørg, hvad der skal ske med en måling på præcis 0,7, hvis den tilføjes til listen.',
+        ],
+      },
+    },
+    {
+      label: 'EMG activity ranges',
+      starterCode: `emg = [0.1, 0.2, 0.4, 0.5, 0.8, 0.9]
+
+lower_threshold = 0.3
+upper_threshold = 0.7
+
+for measurement in emg:
+    if measurement < lower_threshold:
+        print("Low activity")
+    elif measurement <= lower_threshold:
+        print("Normal activity")
+    else:
+        print("High activity")
+`,
+      exercisePrompt: 'Print "Low activity" below 0.3, "Normal activity" from 0.3 through 0.7, and "High activity" above 0.7.',
+      explanation: 'Classify each measurement as low, normal, or high. Both threshold values count as normal.',
+      teacherNotes: {
+        concept: 'Python afprøver if og elif i rækkefølge og vælger den første sande gren. Når elif nås, ved vi allerede, at målingen ikke er under den nedre grænse.',
+        knownIssues: [
+          'Elif sammenligner med den nedre grænse igen, så de viste værdier i normalområdet ender i else-grenen.',
+          'Den øvre grænse er defineret, men bruges ikke i betingelsen.',
+          'En løsning med en streng øvre grænse ville klassificere 0,7 som høj, selvom opgaven siger, at den tæller som normal.',
+        ],
+        hintLadder: [
+          'Bed eleven vælge en måling midt i normalområdet og forudsige dens kategori.',
+          'Bed eleven følge målingen gennem if og elif og fortælle, hvor den ender.',
+          'Spørg, hvad vi allerede ved om målingen, når den første betingelse er falsk.',
+          'Spørg, hvilken grænse elif stadig skal tjekke, og hvordan præcis 0,3 og 0,7 bør klassificeres.',
+        ],
+      },
+    },
+  ],
 }
