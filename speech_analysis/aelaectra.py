@@ -17,10 +17,7 @@ from transformers import (
 )
 
 
-# --------------------------------------------------
-# CONFIGURATION
-# --------------------------------------------------
-
+# CONFIGURATION for nedes
 # Hugging Face model ID
 BASE_MODEL = "Maltehb/aelaectra-danish-electra-small-cased"
 
@@ -305,3 +302,4 @@ if __name__ == "__main__":
             if answer.lower() == ":q":
                 break
             print(predict(exercise, answer))
+            
