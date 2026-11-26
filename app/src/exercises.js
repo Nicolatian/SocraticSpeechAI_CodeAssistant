@@ -51,6 +51,15 @@ print ("Total EMG:" , totals)
     `,
 
     exercisePrompt: 'Make the program calculate the sum of all EMG measurements.',
+    verificationCriteria: [
+    'The program must calculate the sum of every measurement in the EMG list.',
+    'The program must include all six values: 0.2, 0.4, 0.6, 0.3, 0.5 and 0.6.',
+    'The calculated total must be 2.6.',
+    'The program output must contain: Total EMG: 2.6.',
+    'The program must execute without errors.',
+    'The solution must process all measurements, not just a subset.',
+    'Different valid loop implementations are acceptable, including iterating directly over the list or using range(len(EMG)).'
+    ],
     teacherNotes: {
       concept: 'En for-løkke gentager en blok kode et bestemt antal gange. Antallet af gentagelser skal passe til antallet af elementer i listen, hvis alle skal tælles med.',
       knownIssues: [
@@ -84,6 +93,14 @@ if emg < threshold:
 else:
     print("Low muscle activity")`,
     exercisePrompt: 'Make the program print "High muscle activity" when the EMG measurement is above the threshold.',
+    verificationCriteria: [
+    'The program must compare the EMG measurement with the threshold.',
+    'The program must use a condition that correctly identifies when emg is greater than threshold.',
+    'The program must print "High muscle activity" when emg is above threshold.',
+    'The program must print "Low muscle activity" when emg is below or equal to threshold.',
+    'The program must use the correct conditional logic rather than simply printing a fixed message.',
+    'The program must execute without errors.'
+    ],
     teacherNotes: {
   concept: 'En if/else-sætning vælger en gren ud fra, om betingelsen er sand. Sammenligningstegn som større end og mindre end giver modsatte resultater.',
   knownIssues: [
@@ -117,6 +134,14 @@ measurement = ecg[1][0]
 print("Measurement:", measurement)
 `,
       exercisePrompt: 'Print the third measurement from the second ECG recording.',
+      verificationCriteria: [
+      'The program must retrieve a measurement from the second ECG recording.',
+      'The program must use the correct outer list index, which is index 1.',
+      'The program must retrieve the third measurement from that recording using index 2.',
+      'The retrieved measurement must have the value 0.7.',
+      'The program output must contain: Measurement: 0.7.',
+      'The program must execute without errors.'
+      ],
       explanation: 'Your goal is to retrieve the third measurement from the second ECG recording.',
       teacherNotes: {
         concept: 'I en liste af lister vælger det første indeks den indre liste. Det næste indeks vælger et element i den liste. Begge indekser starter ved nul.',
@@ -149,6 +174,16 @@ selected = ecg[start_index:end_index + 1]
 print("Selected measurements:", selected)
 `,
       exercisePrompt: 'Print the ECG measurements from 2.0 through 3.0 seconds, including both endpoints.',
+      verificationCriteria: [
+      'The program must select ECG measurements from 2.0 through 3.0 seconds, including both endpoints.',
+      'The program must convert time into list indices using samples_per_second.',
+      'The start index must correspond to 2.0 seconds, which is index 4.',
+      'The end index must include the measurement at 3.0 seconds, which is index 6.',
+      'The selected measurements must be [0.8, 0.4, 0.2].',
+      'The program output must contain: Selected measurements: [0.8, 0.4, 0.2].',
+      'The program must execute without errors.',
+      'Different valid implementations are acceptable, provided they select the correct time interval.'
+      ],
       explanation: 'The recording starts at 0 seconds and contains two samples per second. Select the measurements at 2.0, 2.5, and 3.0 seconds.',
       teacherNotes: {
         concept: 'Tid i sekunder omregnes til et listeindeks ved hjælp af antallet af målinger pr. sekund. En Python-slice inkluderer startindekset og stopper før slutgrænsen.',
@@ -181,6 +216,16 @@ average = total / len(emg)
 print("Average EMG:", average)
 `,
       exercisePrompt: 'Fix the loop so all five EMG measurements contribute to the average.',
+      verificationCriteria: [
+      'The program must calculate the average of all five EMG measurements.',
+      'The program must accumulate the measurements instead of overwriting the running total.',
+      'The running total must include every measurement in the list.',
+      'The average must be calculated by dividing the total by the number of measurements.',
+      'The expected average must be 0.4.',
+      'The program output must contain: Average EMG: 0.4.',
+      'The program must execute without errors.',
+      'Different valid implementations of the accumulator are acceptable.'
+      ],
       explanation: 'Your goal is to calculate the average of all five EMG measurements.',
       teacherNotes: {
         concept: 'En akkumulator gemmer en løbende sum. I hver iteration bruges den tidligere sum til at beregne den nye sum.',
@@ -218,6 +263,17 @@ for interval in intervals:
 print("Interval averages:", averages)
 `,
       exercisePrompt: 'Calculate a separate average for each EMG interval.',
+      verificationCriteria: [
+      'The program must calculate a separate average for each EMG interval.',
+      'The program must process every measurement in each interval.',
+      'The running total must be reset to zero at the beginning of each new interval.',
+      'The program must not carry the sum from one interval into the next.',
+      'Each average must be calculated using the number of measurements in its corresponding interval.',
+      'The resulting averages must be [0.4, 0.4, 0.3333].',
+      'The program output must contain: Interval averages: [0.4, 0.4, 0.3333].',
+      'The program must execute without errors.',
+      'Different valid nested-loop implementations are acceptable.'
+      ],
       explanation: 'Your goal is to print one average per interval, using only the measurements in that interval.',
       teacherNotes: {
         concept: 'Den ydre løkke vælger et interval, og den indre løkke gennemgår målingerne i intervallet. Summen skal begynde ved nul for hvert nyt interval.',
@@ -248,6 +304,15 @@ for measurement in emg:
         print("High muscle activity:", measurement)
 `,
       exercisePrompt: 'Print only the EMG measurements that are strictly above the threshold.',
+      verificationCriteria: [
+      'The program must iterate through all measurements in the EMG list.',
+      'The program must compare each measurement against the threshold.',
+      'The program must print only measurements strictly greater than 0.7.',
+      'The program must identify 0.8 and 0.9 as high muscle activity.',
+      'The program must not print measurements equal to or below the threshold.',
+      'The program must execute without errors.',
+      'Different valid loop and conditional implementations are acceptable.'
+      ],
       explanation: 'Your goal is to print each EMG measurement above the threshold. A measurement equal to the threshold should be left out.',
       teacherNotes: {
         concept: 'Løkken gennemgår alle målinger. If-betingelsen afgør for hver måling, om den skal udskrives.',
@@ -280,6 +345,15 @@ for measurement in emg:
         print("High activity")
 `,
       exercisePrompt: 'Print "Low activity" below 0.3, "Normal activity" from 0.3 through 0.7, and "High activity" above 0.7.',
+      verificationCriteria: [
+      'The program must classify every EMG measurement into the correct activity range.',
+      'Measurements below 0.3 must be classified as Low activity.',
+      'Measurements from 0.3 through 0.7, including both endpoints, must be classified as Normal activity.',
+      'Measurements above 0.7 must be classified as High activity.',
+      'The program must use conditional logic that correctly distinguishes the three ranges.',
+      'The program must execute without errors.',
+      'Different valid conditional implementations are acceptable.'
+      ],
       explanation: 'Classify each measurement as low, normal, or high. Both threshold values count as normal.',
       teacherNotes: {
         concept: 'Python afprøver if og elif i rækkefølge og vælger den første sande gren. Når elif nås, ved vi allerede, at målingen ikke er under den nedre grænse.',
