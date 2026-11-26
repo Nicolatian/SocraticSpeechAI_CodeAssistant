@@ -4,3 +4,7 @@ node_modules/
 app/README.md
 pear_logs.db
 chatterbox-tts-env
+# PyTorch training checkpoints
+models/**/checkpoint-*/
+*.pt
+*.pth
