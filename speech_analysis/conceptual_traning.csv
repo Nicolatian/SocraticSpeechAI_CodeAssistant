@@ -1,5 +1,0 @@
-'text,label
-"En liste starter ved indeks nul. Det tredje element er derfor indeks to.",correct
-"Det tredje element ligger på indeks tre, fordi man starter med at tælle fra et.",misconception
-"Jeg tror det er indeks to, men jeg er ikke helt sikker på hvorfor.",partial
-"Jeg ved ikke hvad et indeks betyder.",unclear

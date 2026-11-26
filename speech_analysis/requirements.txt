@@ -1,3 +1,10 @@
 silero-vad
 soundfile
 scipy
+numpy
+pandas
+torch
+datasets
+scikit-learn
+transformers
+accelerate
